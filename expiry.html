@@ -6,38 +6,33 @@
     <script>
       $(function() {
         var parsedURL = function(url) {
-        
-        };
-        var urlSigningParams = function(access, shortDate, region, iso8601, expiration){
-        
-        };
-
-        var canonicalRequest = function(url, access, expiration, region, iso8601, shortDate) {
-          var request = "GET\n";
           var url_split = url.split(/\/+/);
-          var protocol = url_split[0];
-          var domain = url_split[1];
-          var path = url_split.length >= 3 ? url_split.slice(2) : [];
+          return {
+            "original": url,
+            "protocol": url_split[0] + "//",
+            "domain": url_split[1],
+            "path": "/" + (url_split.length >= 3 ? url_split.slice(2) : []).join("/")
+          }
+        };
 
-          request += "/" + path.join("/") + "\n";
+        var urlSigningParams = function(access, expiration, region, iso8601, shortDate) {
+          var params = '';
+          params += "X-Amz-Algorithm=AWS4-HMAC-SHA256&";
+          params += "X-Amz-Credential=" + access + "%2F" + shortDate + "%2F" + region + "%2Fs3%2Faws4_request&";
+          params += "X-Amz-Date=" + iso8601 + "&";
+          params += "X-Amz-Expires=" + expiration + "&";
+          params += "X-Amz-SignedHeaders=host"
+          return params;
+        };
 
-          request += "X-Amz-Algorithm=AWS4-HMAC-SHA256&";
-          request += "X-Amz-Credential=" + access + "%2F" + shortDate + "%2F" + region + "%2Fs3%2Faws4_request&";
-          request += "X-Amz-Date=" + iso8601 + "&";
-          request += "X-Amz-Expires=" + expiration + "&";
-          request += "X-Amz-SignedHeaders=host\n";
-          request += "host:" + domain  + "\n\n";
+        var canonicalRequest = function(parsed, params) {
+          var request = "GET\n";
+          request += parsed.path + "\n";
+          request += params + "\n";
+          request += "host:" + parsed.domain  + "\n\n";
           request += "host\n";
           request += "UNSIGNED-PAYLOAD";
 
-          https://examplebucket.s3.amazonaws.com/test.txt?
-          X-Amz-Algorithm=AWS4-HMAC-SHA256&
-          X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20130524%2Fus-east-1%2Fs3%2Faws4_request&
-          X-Amz-Date=20130524T000000Z&
-          X-Amz-Expires=86400&
-          X-Amz-SignedHeaders=host&
-          X-Amz-Signature=aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404
-          
           return request;
         };
 
@@ -58,29 +53,28 @@
           return hmacSHA256(hmacSHA256(hmacSHA256(hmacSHA256("AWS4" + secret, shortDate), region), "s3"), "aws4_request");
         };
 
-        var sign = function() {
-          var hmac = CryptoJS.algo.HMAC.create(CryptoJS.algo.SHA256, "Secret Passphrase");
-          hmac.update('part a');
-          hmac.update('part b');
-          hmac.update('part c');
-          var hash = hmac.finalize();
-          console.log("Sig:", hash.toString());
-          return hash.toString();
+        var signedURL = function(url, requestParamStr, signature) {
+          var signedURLStr = url + "?";
+          signedURLStr += requestParamStr;
+          signedURLStr += '&X-Amz-Signature=' + signature;
+          return signedURLStr;
         };
 
         $('#expiry').on('submit', function(e){
           e.preventDefault();
           var target = $(e.target);
-          var url = 'https://examplebucket.s3.amazonaws.com/test.txt' //target.children('[name=url]').val();
-          var access = 'AKIAIOSFODNN7EXAMPLE' //target.children('[name=access_key]').val();
-          var secret = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY' //target.children('[name=secret_key]').val();
-          var expiration = '86400' //target.children('[name=expiration]').val();
-          var region = 'us-east-1' //target.children('[name=region]').val();
+          var url = target.children('[name=url]').val();
+          var access = target.children('[name=access_key]').val();
+          var secret = target.children('[name=secret_key]').val();
+          var expiration = target.children('[name=expiration]').val();
+          var region = target.children('[name=region]').val();
           var date = new Date();
-          var iso8601 = '20130524T000000Z' //date.toISOString().replace(/\-|:|\.\d+/g, '');
-          var shortDate = '20130524' //iso8601.replace(/T.*/, '');
+          var iso8601 = date.toISOString().replace(/\-|:|\.\d+/g, '');
+          var shortDate = iso8601.replace(/T.*/, '');
 
-          var canonicalReq = canonicalRequest(url, access, expiration, region, iso8601, shortDate);
+          var parsedURLArr = parsedURL(url);
+          var requestParamStr = urlSigningParams(access, expiration, region, iso8601, shortDate);
+          var canonicalReq = canonicalRequest(parsedURLArr, requestParamStr);
           console.log("Canonical: ", canonicalReq);
           var stringToSignVar = stringToSign(iso8601, shortDate, canonicalReq);
           console.log("SigningStr: ", stringToSignVar);
@@ -88,8 +82,9 @@
           console.log("SigningKey: ", signingKeyVar.toString());
           var signature = hmacSHA256(signingKeyVar, stringToSignVar).toString();
           console.log("Signature: ", signature);
-
-          
+          var signedURLStr = signedURL(url, requestParamStr, signature);
+          console.log("URL: ", signedURLStr);
+          $('body').append($('<a>').attr('href', signedURLStr).text(signedURLStr))
         });
       });
     </script>
