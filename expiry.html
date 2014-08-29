@@ -1,0 +1,109 @@
+<html>
+  <head>
+    <title>Amazon S3 Expiry</title>
+    <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/hmac-sha256.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script>
+      $(function() {
+        var parsedURL = function(url) {
+        
+        };
+        var urlSigningParams = function(access, shortDate, region, iso8601, expiration){
+        
+        };
+
+        var canonicalRequest = function(url, access, expiration, region, iso8601, shortDate) {
+          var request = "GET\n";
+          var url_split = url.split(/\/+/);
+          var protocol = url_split[0];
+          var domain = url_split[1];
+          var path = url_split.length >= 3 ? url_split.slice(2) : [];
+
+          request += "/" + path.join("/") + "\n";
+
+          request += "X-Amz-Algorithm=AWS4-HMAC-SHA256&";
+          request += "X-Amz-Credential=" + access + "%2F" + shortDate + "%2F" + region + "%2Fs3%2Faws4_request&";
+          request += "X-Amz-Date=" + iso8601 + "&";
+          request += "X-Amz-Expires=" + expiration + "&";
+          request += "X-Amz-SignedHeaders=host\n";
+          request += "host:" + domain  + "\n\n";
+          request += "host\n";
+          request += "UNSIGNED-PAYLOAD";
+
+          https://examplebucket.s3.amazonaws.com/test.txt?
+          X-Amz-Algorithm=AWS4-HMAC-SHA256&
+          X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20130524%2Fus-east-1%2Fs3%2Faws4_request&
+          X-Amz-Date=20130524T000000Z&
+          X-Amz-Expires=86400&
+          X-Amz-SignedHeaders=host&
+          X-Amz-Signature=aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404
+          
+          return request;
+        };
+
+        var stringToSign = function(iso8601, shortDate, canonicalReq) {
+          var str = "AWS4-HMAC-SHA256\n";
+          str += iso8601 + "\n";
+          str += shortDate + "/us-east-1/s3/aws4_request\n";
+          str += CryptoJS.SHA256(canonicalReq).toString();
+          return str;
+        };
+
+        var hmacSHA256 = function(a, b) {
+          // AWS Docs pass the secret first, we swap it to be compatible
+          return CryptoJS.HmacSHA256(b, a);
+        };
+
+        var signingKey = function(secret, shortDate, region) {
+          return hmacSHA256(hmacSHA256(hmacSHA256(hmacSHA256("AWS4" + secret, shortDate), region), "s3"), "aws4_request");
+        };
+
+        var sign = function() {
+          var hmac = CryptoJS.algo.HMAC.create(CryptoJS.algo.SHA256, "Secret Passphrase");
+          hmac.update('part a');
+          hmac.update('part b');
+          hmac.update('part c');
+          var hash = hmac.finalize();
+          console.log("Sig:", hash.toString());
+          return hash.toString();
+        };
+
+        $('#expiry').on('submit', function(e){
+          e.preventDefault();
+          var target = $(e.target);
+          var url = 'https://examplebucket.s3.amazonaws.com/test.txt' //target.children('[name=url]').val();
+          var access = 'AKIAIOSFODNN7EXAMPLE' //target.children('[name=access_key]').val();
+          var secret = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY' //target.children('[name=secret_key]').val();
+          var expiration = '86400' //target.children('[name=expiration]').val();
+          var region = 'us-east-1' //target.children('[name=region]').val();
+          var date = new Date();
+          var iso8601 = '20130524T000000Z' //date.toISOString().replace(/\-|:|\.\d+/g, '');
+          var shortDate = '20130524' //iso8601.replace(/T.*/, '');
+
+          var canonicalReq = canonicalRequest(url, access, expiration, region, iso8601, shortDate);
+          console.log("Canonical: ", canonicalReq);
+          var stringToSignVar = stringToSign(iso8601, shortDate, canonicalReq);
+          console.log("SigningStr: ", stringToSignVar);
+          var signingKeyVar = signingKey(secret, shortDate, region);
+          console.log("SigningKey: ", signingKeyVar.toString());
+          var signature = hmacSHA256(signingKeyVar, stringToSignVar).toString();
+          console.log("Signature: ", signature);
+
+          
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <form id="expiry">
+      URL: <input type='text' name='url' size="60" value='https://s3.amazonaws.com/expiry-test/foo.txt'><br>
+      AccessKey: <input type='text' name='access_key' size="60" value='AKIAIPPIQEPELJQRXYKQ'><br>
+      SecretKey: <input type='text' name='secret_key' size="60" value='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'><br>
+      Expiration: <input type='text' name='expiration' size="60" value='300'><br>
+      Region: <input type='text' name='region' size="60" value='us-east-1'><br>
+      <input type='submit'>
+    </form>
+  </body>
+</html>
+
+
