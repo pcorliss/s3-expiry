@@ -60,14 +60,18 @@
           return signedURLStr;
         };
 
-        $('#expiry').on('submit', function(e){
+        $('#expiry-submit').on('click', function(e){
           e.preventDefault();
-          var target = $(e.target);
-          var url = target.children('[name=url]').val();
-          var access = target.children('[name=access_key]').val();
-          var secret = target.children('[name=secret_key]').val();
-          var expiration = target.children('[name=expiration]').val();
-          var region = target.children('[name=region]').val();
+          var form = $(e.target).closest('form');
+          formBlob = {};
+          form.serializeArray().forEach(function(obj) {
+            formBlob[obj.name] = obj.value;
+          });
+          var url = formBlob.url;
+          var access = formBlob.access_key;
+          var secret = formBlob.secret_key;
+          var expiration = formBlob.expiration;
+          var region = formBlob.region
           var date = new Date();
           var iso8601 = date.toISOString().replace(/\-|:|\.\d+/g, '');
           var shortDate = iso8601.replace(/T.*/, '');
@@ -84,20 +88,136 @@
           console.log("Signature: ", signature);
           var signedURLStr = signedURL(url, requestParamStr, signature);
           console.log("URL: ", signedURLStr);
-          $('body').append($('<a>').attr('href', signedURLStr).text(signedURLStr))
+          $('#generated-urls').prepend($('<li>').append($('<a>').attr('href', signedURLStr).text(url)));
         });
       });
     </script>
+    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/pure-min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      .content {
+          margin: 0 auto;
+          padding: 0 2em;
+          max-width: 800px;
+          margin-bottom: 50px;
+          line-height: 1.6em;
+      }
+
+      .header {
+           margin: 0;
+           color: #333;
+           text-align: center;
+           padding: 2.5em 2em 0;
+           border-bottom: 1px solid #eee;
+       }
+          .header h1 {
+              margin: 0.2em 0;
+              font-size: 3em;
+              font-weight: 300;
+          }
+           .header h2 {
+              font-weight: 300;
+              color: #ccc;
+              padding: 0;
+              margin-top: 0;
+          }
+
+      .content-subhead {
+          margin: 50px 0 20px 0;
+          font-weight: 300;
+          color: #888;
+      }
+
+      body {
+          color: #777;
+      }
+
+      a {
+        color: #428bca;
+        text-decoration: none;
+        background: 0 0;
+      }
+
+      a:active, a:hover {
+        color: #2a6496;
+        text-decoration: underline;
+        outline: 0;
+      }
+
+      a:visited {
+        color: #428bca;
+        text-decoration: none;
+        background: 0 0;
+      }
+      .pure-form-aligned .pure-control-group label {
+        width: 6em;
+      }
+
+      .pure-form input {
+        width: 28em;
+      }
+
+      .content {
+        max-width: 90%;
+      }
+
+    </style>
   </head>
   <body>
-    <form id="expiry">
-      URL: <input type='text' name='url' size="60" value='https://s3.amazonaws.com/expiry-test/foo.txt'><br>
-      AccessKey: <input type='text' name='access_key' size="60" value='AKIAIPPIQEPELJQRXYKQ'><br>
-      SecretKey: <input type='text' name='secret_key' size="60" value='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'><br>
-      Expiration: <input type='text' name='expiration' size="60" value='300'><br>
-      Region: <input type='text' name='region' size="60" value='us-east-1'><br>
-      <input type='submit'>
-    </form>
+    <div class="header">
+      <h1>AWS S3 Expiring Link Generator</h1>
+      <h2>A quick alternative to the command line</h2>
+    </div>
+
+    <div class="content pure-g">
+      <div class="pure-u-1-2">
+        <h2 class="content-subhead">Right-Click and Select "Copy Link Address"</h2>
+        <div>
+          <ul id="generated-urls"></ul>
+        </div>
+      </div>
+
+      <div class="pure-u-1-2">
+        <h2 class="content-subhead">Enter your S3 URL and Connectivity Info</h2>
+        <form id="expiry" class="pure-form pure-form-aligned">
+          <fieldset>
+            <div class="pure-control-group">
+              <label for="url">URL</label>
+              <input type='text' name='url' placeholder="https://[BUCKET].s3.amazonaws.com/[FILE_PATH]" value='https://expiry-test.s3.amazonaws.com/foo.txt'>
+            </div>
+            <div class="pure-control-group">
+              <label for="access_key">AccessKey</label>
+              <input type='text' name='access_key' placeholder="Your Access Key" value='AKIAIPPIQEPELJQRXYKQ'>
+            </div>
+            <div class="pure-control-group">
+              <label for="secret_key">SecretKey</label>
+              <input type='text' name='secret_key' placeholder="Your Secret Key" value='9qfILI9vN/Iz1mU62MkwP7fD5etoLNoJoARx0ZNN'>
+            </div>
+            <div class="pure-control-group">
+              <label for="expiration">Expiration</label>
+              <input type='text' name='expiration' placeholder="Expiration in Seconds (Max 7 Days)" value='86400'>
+            </div>
+            <div class="pure-control-group">
+              <label for="region">Region</label>
+              <select name='region'>
+                <option>us-east-1</option>
+                <option>us-west-1</option>
+                <option>us-west-2</option>
+                <option>eu-west-1</option>
+                <option>sa-east-1</option>
+                <option>ap-northeast-1</option>
+                <option>ap-southeast-1</option>
+                <option>ap-southeast-2</option>
+              </select><br>
+            </div>
+
+            <div class="pure-controls">
+              <button id="expiry-submit" type="submit" class="pure-button pure-button-primary">Submit</button>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </div>
   </body>
 </html>
 
