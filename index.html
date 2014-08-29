@@ -1,6 +1,17 @@
-<html>
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
   <head>
-    <title>Amazon S3 Expiry</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>AWS S3 Expiring Link Generator</title>
+
+    <meta name="description" content="AWS S3 Expiring Link Generator">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/hmac-sha256.js"></script>
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <script>
@@ -88,12 +99,12 @@
           console.log("Signature: ", signature);
           var signedURLStr = signedURL(url, requestParamStr, signature);
           console.log("URL: ", signedURLStr);
-          $('#generated-urls').prepend($('<li>').append($('<a>').attr('href', signedURLStr).text(url)));
+          $('#generated-urls-header').fadeIn();
+          $('#generated-urls').fadeIn().prepend($('<li>').append($('<a>').attr('href', signedURLStr).text(url)).hide().fadeIn());
         });
       });
     </script>
     <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/pure-min.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
       .content {
           margin: 0 auto;
@@ -161,6 +172,10 @@
         max-width: 90%;
       }
 
+      .hidden {
+        display: none;
+      }
+
     </style>
   </head>
   <body>
@@ -171,10 +186,25 @@
 
     <div class="content pure-g">
       <div class="pure-u-1-2">
-        <h2 class="content-subhead">Right-Click and Select "Copy Link Address"</h2>
-        <div>
-          <ul id="generated-urls"></ul>
-        </div>
+        <h2 id="generated-urls-header" class="content-subhead hidden">Generated Links</h2>
+        <ul id="generated-urls" class="hidden"></ul>
+
+        <h2 class="content-subhead">What's all this?</h2>
+        <p>
+          Amazon S3 provides a great place to store all sorts of files but sometimes managing permissions can be a bit of a pain.
+          Built-in to S3 is the ability to generate links to private files that expire after a set period of time.
+          This tool generates those for you so you don't have to fiddle with the command line or install any 3rd party tools.
+        </p>
+
+        <h2 class="content-subhead">Won't you steal my key?</h2>
+        <p>
+          Your secret key is safe, all code runs client side. The code is also open source in case you don't trust me.
+        </p>
+
+        <h2 class="content-subhead">Who are you?</h2>
+        <p>
+          I'm <a href="https://twitter.com/pcorliss">Phil</a>. I sometimes write things at <a href="http://blog.50projects.com">blog.50projects.com</a>
+        </p>
       </div>
 
       <div class="pure-u-1-2">
@@ -183,7 +213,7 @@
           <fieldset>
             <div class="pure-control-group">
               <label for="url">URL</label>
-              <input type='text' name='url' placeholder="https://[BUCKET].s3.amazonaws.com/[FILE_PATH]" value='https://expiry-test.s3.amazonaws.com/foo.txt'>
+              <input type='text' name='url' placeholder="https://[BUCKET].s3.amazonaws.com/[FILE_PATH]" value='https://expiry-test.s3.amazonaws.com/hello.txt'>
             </div>
             <div class="pure-control-group">
               <label for="access_key">AccessKey</label>
@@ -218,6 +248,16 @@
         </form>
       </div>
     </div>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-17879056-12', 'auto');
+      ga('send', 'pageview');
+    </script>
   </body>
 </html>
 
