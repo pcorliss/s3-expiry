@@ -90,15 +90,15 @@
           var parsedURLArr = parsedURL(url);
           var requestParamStr = urlSigningParams(access, expiration, region, iso8601, shortDate);
           var canonicalReq = canonicalRequest(parsedURLArr, requestParamStr);
-          console.log("Canonical: ", canonicalReq);
+          //console.log("Canonical: ", canonicalReq);
           var stringToSignVar = stringToSign(iso8601, shortDate, canonicalReq);
-          console.log("SigningStr: ", stringToSignVar);
+          //console.log("SigningStr: ", stringToSignVar);
           var signingKeyVar = signingKey(secret, shortDate, region);
-          console.log("SigningKey: ", signingKeyVar.toString());
+          //console.log("SigningKey: ", signingKeyVar.toString());
           var signature = hmacSHA256(signingKeyVar, stringToSignVar).toString();
-          console.log("Signature: ", signature);
+          //console.log("Signature: ", signature);
           var signedURLStr = signedURL(url, requestParamStr, signature);
-          console.log("URL: ", signedURLStr);
+          //console.log("URL: ", signedURLStr);
           $('#generated-urls-header').fadeIn();
           $('#generated-urls').fadeIn().prepend($('<li>').append($('<a>').attr('href', signedURLStr).text(url)).hide().fadeIn());
         });
@@ -198,7 +198,7 @@
 
         <h2 class="content-subhead">Won't you steal my key?</h2>
         <p>
-          Your secret key is safe, all code runs client side. The code is also open source in case you don't trust me.
+          Your secret key is safe, all code runs client side. The <a href="https://github.com/pcorliss/s3-expiry">code is also available</a> in case you don't trust me.
         </p>
 
         <h2 class="content-subhead">Who are you?</h2>
