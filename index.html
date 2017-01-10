@@ -12,7 +12,8 @@
     <meta name="description" content="AWS S3 Expiring Link Generator">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/hmac-sha256.js"></script>
+    <script src="./js/rollups/hmac-sha256.js"></script>
+    <script src="./js/components/enc-base64-min.js"></script>
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <script>
       $(function() {
@@ -25,7 +26,9 @@
             "path": "/" + (url_split.length >= 3 ? url_split.slice(2) : []).join("/")
           }
         };
-
+		
+		
+		
         var urlSigningParams = function(access, expiration, region, iso8601, shortDate) {
           var params = '';
           params += "X-Amz-Algorithm=AWS4-HMAC-SHA256&";
@@ -35,42 +38,62 @@
           params += "X-Amz-SignedHeaders=host"
           return params;
         };
-
-        var canonicalRequest = function(parsed, params) {
+		
+		/**
+		* CanonicalRequest =
+		* HTTPRequestMethod + '\n' +
+		* CanonicalURI + '\n' +
+		* CanonicalQueryString + '\n' +
+		* CanonicalHeaders + '\n' +
+		* SignedHeaders + '\n' +
+		* HexEncode(Hash(RequestPayload))
+		*/
+        var canonicalRequest = function(parsed, params, expiration) {
           var request = "GET\n";
           request += parsed.path + "\n";
           request += params + "\n";
           request += "host:" + parsed.domain  + "\n\n";
           request += "host\n";
           request += "UNSIGNED-PAYLOAD";
-
           return request;
         };
-
-        var stringToSign = function(iso8601, shortDate, canonicalReq) {
-          var str = "AWS4-HMAC-SHA256\n";
+		
+        var stringToSign = function(iso8601, shortDate, canonicalReq,region) {
+		  var str = "AWS4-HMAC-SHA256\n";
           str += iso8601 + "\n";
-          str += shortDate + "/us-east-1/s3/aws4_request\n";
-          str += CryptoJS.SHA256(canonicalReq).toString();
+          str += shortDate + "/"+region+"/s3/aws4_request\n";
+          str += CryptoJS.enc.Hex.stringify(CryptoJS.SHA256(canonicalReq));
           return str;
         };
-
+		
         var hmacSHA256 = function(a, b) {
           // AWS Docs pass the secret first, we swap it to be compatible
           return CryptoJS.HmacSHA256(b, a);
+		  //return CryptoJS.HmacSHA256(a,b);
         };
-
-        var signingKey = function(secret, shortDate, region) {
-          return hmacSHA256(hmacSHA256(hmacSHA256(hmacSHA256("AWS4" + secret, shortDate), region), "s3"), "aws4_request");
+		
+        var signingKey = function(secret, shortDate, region, service) {
+		
+		  var kSecret = CryptoJS.enc.Utf8.parse("AWS4"+secret);
+		  //console.log('kSecret: '+kSecret.toString());
+		  var kDate = hmacSHA256(kSecret, CryptoJS.enc.Utf8.parse(shortDate))
+		  //console.log('kDate: '+kDate.toString());
+		  var kRegion = hmacSHA256(kDate, region);
+		  //console.log('kRegion: '+kRegion.toString());
+		  var kService=hmacSHA256(kRegion, service);
+		  //console.log('kService: '+kService.toString());
+		  var kSigning = hmacSHA256(kService, "aws4_request");
+		  //console.log('kSigning: '+kSigning.toString());
+		  return kSigning;
         };
-
-        var signedURL = function(url, requestParamStr, signature) {
+		
+        var signedURL = function(url, requestParamStr, signature, key, expiration) {
           var signedURLStr = url + "?";
           signedURLStr += requestParamStr;
-          signedURLStr += '&X-Amz-Signature=' + signature;
+          signedURLStr += '&X-Amz-Signature=' + encodeURIComponent(CryptoJS.enc.Hex.stringify(signature));
           return signedURLStr;
         };
-
+		
         $('#expiry-submit').on('click', function(e){
           e.preventDefault();
           var form = $(e.target).closest('form');
@@ -85,24 +108,31 @@
           var region = formBlob.region
           var date = new Date();
           var iso8601 = date.toISOString().replace(/\-|:|\.\d+/g, '');
+		  //console.log('iso8601: '+iso8601);
           var shortDate = iso8601.replace(/T.*/, '');
-
+		  //console.log('short date: '+shortDate);
+		  
           var parsedURLArr = parsedURL(url);
+		  //console.log('parsed url: '+ JSON.stringify(parsedURLArr));
           var requestParamStr = urlSigningParams(access, expiration, region, iso8601, shortDate);
-          var canonicalReq = canonicalRequest(parsedURLArr, requestParamStr);
+          var canonicalReq = canonicalRequest(parsedURLArr, requestParamStr, expiration);
           //console.log("Canonical: ", canonicalReq);
-          var stringToSignVar = stringToSign(iso8601, shortDate, canonicalReq);
+		  //console.log(CryptoJS.enc.Utf8.parse(canonicalReq).toString());
+          var stringToSignVar = stringToSign(iso8601, shortDate, canonicalReq,region);
           //console.log("SigningStr: ", stringToSignVar);
-          var signingKeyVar = signingKey(secret, shortDate, region);
-          //console.log("SigningKey: ", signingKeyVar.toString());
-          var signature = hmacSHA256(signingKeyVar, stringToSignVar).toString();
-          //console.log("Signature: ", signature);
-          var signedURLStr = signedURL(url, requestParamStr, signature);
+		  //console.log(CryptoJS.enc.Utf8.parse(stringToSignVar).toString());
+          var signingKeyVar = signingKey(secret, shortDate, region, "s3");
+          //console.log("SigningKey: ", CryptoJS.enc.Base64.stringify(signingKeyVar));
+          var signature = hmacSHA256(signingKeyVar, stringToSignVar);
+          //console.log("Signature: ", CryptoJS.enc.Base64.stringify(signature));
+          var signedURLStr = signedURL(url, requestParamStr, signature,access, expiration);
           //console.log("URL: ", signedURLStr);
+		  
           $('#generated-urls-header').fadeIn();
           $('#generated-urls').fadeIn().prepend($('<li>').append($('<a>').attr('href', signedURLStr).text(url)).hide().fadeIn());
         });
       });
+	  
     </script>
     <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/pure-min.css">
     <style>
@@ -113,7 +143,6 @@
           margin-bottom: 50px;
           line-height: 1.6em;
       }
-
       .header {
            margin: 0;
            color: #333;
@@ -132,29 +161,24 @@
               padding: 0;
               margin-top: 0;
           }
-
       .content-subhead {
           margin: 50px 0 20px 0;
           font-weight: 300;
           color: #888;
       }
-
       body {
           color: #777;
       }
-
       a {
         color: #428bca;
         text-decoration: none;
         background: 0 0;
       }
-
       a:active, a:hover {
         color: #2a6496;
         text-decoration: underline;
         outline: 0;
       }
-
       a:visited {
         color: #428bca;
         text-decoration: none;
@@ -163,19 +187,15 @@
       .pure-form-aligned .pure-control-group label {
         width: 6em;
       }
-
       .pure-form input {
         width: 28em;
       }
-
       .content {
         max-width: 90%;
       }
-
       .hidden {
         display: none;
       }
-
     </style>
   </head>
   <body>
@@ -234,6 +254,7 @@
                 <option>us-west-1</option>
                 <option>us-west-2</option>
                 <option>eu-west-1</option>
+                <option>eu-central-1</option>
                 <option>sa-east-1</option>
                 <option>ap-northeast-1</option>
                 <option>ap-southeast-1</option>
@@ -247,18 +268,6 @@
           </fieldset>
         </form>
       </div>
-    </div>
-
-    <script>
-      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-      ga('create', 'UA-17879056-12', 'auto');
-      ga('send', 'pageview');
-    </script>
+    </div>   
   </body>
 </html>
-
-
