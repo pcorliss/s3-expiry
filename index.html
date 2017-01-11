@@ -12,7 +12,7 @@
     <meta name="description" content="AWS S3 Expiring Link Generator">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/hmac-sha256.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/hmac-sha256.js"></script>
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <script>
       $(function() {
@@ -231,13 +231,19 @@
               <label for="region">Region</label>
               <select name='region'>
                 <option>us-east-1</option>
+                <option>us-east-2</option>
                 <option>us-west-1</option>
                 <option>us-west-2</option>
                 <option>eu-west-1</option>
-                <option>sa-east-1</option>
+                <option>eu-west-2</option>
+                <option>ap-south-1</option>
+                <option>ap-northeast-2</option>
                 <option>ap-northeast-1</option>
+                <option>sa-east-1</option>
+                <option>ca-central-1</option>
                 <option>ap-southeast-1</option>
                 <option>ap-southeast-2</option>
+                <option>eu-central-1</option>
               </select><br>
             </div>
 
