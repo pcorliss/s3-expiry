@@ -58,10 +58,10 @@
           return request;
         };
 
-        var stringToSign = function(iso8601, shortDate, canonicalReq) {
+        var stringToSign = function(iso8601, shortDate, canonicalReq, region) {
           var str = "AWS4-HMAC-SHA256\n";
           str += iso8601 + "\n";
-          str += shortDate + "/us-east-1/s3/aws4_request\n";
+          str += shortDate + "/" + region + "/s3/aws4_request\n";
           str += CryptoJS.SHA256(canonicalReq).toString();
           return str;
         };
@@ -102,7 +102,7 @@
           var requestParamStr = urlSigningParams(access, expiration, region, iso8601, shortDate);
           var canonicalReq = canonicalRequest(parsedURLArr, requestParamStr);
           //console.log("Canonical: ", canonicalReq);
-          var stringToSignVar = stringToSign(iso8601, shortDate, canonicalReq);
+          var stringToSignVar = stringToSign(iso8601, shortDate, canonicalReq, region);
           //console.log("SigningStr: ", stringToSignVar);
           var signingKeyVar = signingKey(secret, shortDate, region);
           //console.log("SigningKey: ", signingKeyVar.toString());
