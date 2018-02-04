@@ -27,6 +27,19 @@
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <script>
       $(function() {
+        // Shamelessly Stolen from https://stackoverflow.com/questions/617647/where-is-my-one-line-implementation-of-rot13-in-javascript-going-wrong
+        var rot13 = function(s) {
+          return s.replace(/[a-zA-Z]/g,function(c){return String.fromCharCode((c<="Z"?90:122)>=(c=c.charCodeAt(0)+13)?c:c-26);});
+        }
+
+        // We purposefully obfuscate the access key and secret here.
+        // AWS will disable an account if it finds a compromised key in the wild.
+        var accessKey = 'NXVNV3QFZCKNO5EV63AN';
+        var secretKey = 'WGEPmju4SKNorfKDxDxkSkjQHqUL0aS1N+sxtICt';
+
+        $('#access_key').val(rot13(accessKey));
+        $('#secret_key').val(rot13(secretKey));
+
         var parsedURL = function(url) {
           var url_split = url.split(/\/+/);
           return {
@@ -220,7 +233,7 @@
 
       <div class="pure-u-1-2">
         <h2 class="content-subhead">Enter your S3 URL and Connectivity Info</h2>
-        <form id="expiry" class="pure-form pure-form-aligned">
+        <form id="expiry" class="pure-form pure-form-aligned" action="">
           <fieldset>
             <div class="pure-control-group">
               <label for="url">URL</label>
@@ -228,11 +241,11 @@
             </div>
             <div class="pure-control-group">
               <label for="access_key">AccessKey</label>
-              <input type='text' name='access_key' placeholder="Your Access Key" value='AKIAIPPIQEPELJQRXYKQ'>
+              <input type='text' id='access_key' name='access_key' placeholder="Your Access Key" value=''>
             </div>
             <div class="pure-control-group">
               <label for="secret_key">SecretKey</label>
-              <input type='text' name='secret_key' placeholder="Your Secret Key" value='9qfILI9vN/Iz1mU62MkwP7fD5etoLNoJoARx0ZNN'>
+              <input type='text' id='secret_key' name='secret_key' placeholder="Your Secret Key" value=''>
             </div>
             <div class="pure-control-group">
               <label for="expiration">Expiration</label>
@@ -247,6 +260,7 @@
                 <option>us-west-2</option>
                 <option>eu-west-1</option>
                 <option>eu-west-2</option>
+                <option>eu-west-3</option>
                 <option>ap-south-1</option>
                 <option>ap-northeast-2</option>
                 <option>ap-northeast-1</option>
