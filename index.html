@@ -41,7 +41,8 @@
         $('#secret_key').val(rot13(secretKey));
 
         var parsedURL = function(url) {
-          var url_split = url.split(/\/+/);
+          var encodedURL = encodeURI(url);
+          var url_split = encodedURL.split(/\/+/);
           return {
             "original": url,
             "protocol": url_split[0] + "//",
@@ -112,17 +113,18 @@
           var shortDate = iso8601.replace(/T.*/, '');
 
           var parsedURLArr = parsedURL(url);
+          // console.log("Parsed: ", parsedURLArr);
           var requestParamStr = urlSigningParams(access, expiration, region, iso8601, shortDate);
           var canonicalReq = canonicalRequest(parsedURLArr, requestParamStr);
-          //console.log("Canonical: ", canonicalReq);
+          // console.log("Canonical: ", canonicalReq);
           var stringToSignVar = stringToSign(iso8601, shortDate, canonicalReq, region);
-          //console.log("SigningStr: ", stringToSignVar);
+          // console.log("SigningStr: ", stringToSignVar);
           var signingKeyVar = signingKey(secret, shortDate, region);
-          //console.log("SigningKey: ", signingKeyVar.toString());
+          // console.log("SigningKey: ", signingKeyVar.toString());
           var signature = hmacSHA256(signingKeyVar, stringToSignVar).toString();
-          //console.log("Signature: ", signature);
+          // console.log("Signature: ", signature);
           var signedURLStr = signedURL(url, requestParamStr, signature);
-          //console.log("URL: ", signedURLStr);
+          // console.log("URL: ", signedURLStr);
           $('#generated-urls-header').fadeIn();
           $('#generated-urls').fadeIn().prepend($('<li>').append($('<a>').attr('href', signedURLStr).text(url)).hide().fadeIn());
         });
